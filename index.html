@@ -9,70 +9,60 @@
     <style>
         body { font-family: sans-serif; background: #f0f2f5; padding: 15px; text-align: center; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
-        h1 { color: #2e7d32; font-size: 24px; margin-bottom: 10px; }
+        h1 { color: #2e7d32; font-size: 24px; }
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
-        button { background: #4CAF50; color: white; border: none; width: 100%; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
-        .product { background: white; padding: 15px; border-radius: 15px; border: 1px solid #eee; margin-top: 20px; position: relative; text-align: right; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .product img { width: 100%; border-radius: 10px; height: 220px; object-fit: cover; }
+        button { background: #4CAF50; color: white; border: none; width: 100%; padding: 15px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .product { background: white; padding: 15px; border-radius: 15px; border: 1px solid #eee; margin-top: 20px; position: relative; text-align: right; }
+        .product img { width: 100%; border-radius: 10px; height: 200px; object-fit: cover; }
         .wa-btn { display: block; background: #25D366; color: white; text-decoration: none; padding: 12px; border-radius: 10px; margin-top: 10px; font-weight: bold; text-align: center; }
-        .del-btn { position: absolute; top: 10px; left: 10px; background: rgba(255,0,0,0.7); color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-size: 20px; }
+        .del-btn { position: absolute; top: 10px; left: 10px; background: rgba(255,0,0,0.6); color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h1>🐣 سوق المزرعة</h1>
-    <p style="color: #666;">انشر عرضك وخصصه بكلمة سر للحذف</p>
-    <input type="text" id="pName" placeholder="اسم المنتج (مثلاً: دجاج عربي)">
-    <input type="number" id="pPrice" placeholder="السعر بالدينار التونسي">
+    <p>انشر عرضك ليشاهده الجميع فوراً</p>
+    <input type="text" id="pName" placeholder="اسم المنتج">
+    <input type="number" id="pPrice" placeholder="السعر بالدينار">
     <input type="tel" id="pPhone" placeholder="رقم واتسابك (216xxxxxxx)">
-    <input type="password" id="pPass" placeholder="اختر كلمة سر لحذف هذا الإعلان">
+    <input type="password" id="pPass" placeholder="اختر كلمة سر لحماية إعلانك">
     <input type="file" id="pImg" accept="image/*">
     <button onclick="publish()">نشر العرض الآن</button>
 </div>
 
-<div id="market" style="max-width: 400px; margin: auto; padding-bottom: 50px;"></div>
+<div id="market" style="max-width: 400px; margin: auto;"></div>
 
 <script>
-    // ربط الموقع بقاعدة بياناتك الخاصة
+    // ربط قاعدة البيانات برابطك الخاص
     const firebaseConfig = {
         databaseURL: "https://sou9-c7e27-default-rtdb.firebaseio.com/" 
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database().ref("products");
 
-    // وظيفة نشر المنتج
     function publish() {
         const name = document.getElementById('pName').value;
         const price = document.getElementById('pPrice').value;
         const phone = document.getElementById('pPhone').value;
-        const password = document.getElementById('pPass').value;
-        const fileInput = document.getElementById('pImg');
+        const pass = document.getElementById('pPass').value;
+        const file = document.getElementById('pImg').files[0];
 
-        if (fileInput.files[0] && name && phone && password) {
+        if (file && name && phone && pass) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                db.push({ 
-                    name: name, 
-                    price: price, 
-                    phone: phone, 
-                    password: password, // حفظ كلمة السر مع المنتج
-                    img: e.target.result 
-                });
-                alert("تم النشر بنجاح! يمكن للجميع رؤية عرضك الآن.");
-                // تفريغ الخانات
+                db.push({ name, price, phone, pass, img: e.target.result });
+                alert("تم النشر بنجاح! احتفظ بكلمة سرك للحذف.");
                 document.getElementById('pName').value = "";
                 document.getElementById('pPrice').value = "";
                 document.getElementById('pPass').value = "";
-                fileInput.value = "";
             };
-            reader.readAsDataURL(fileInput.files[0]);
+            reader.readAsDataURL(file);
         } else {
-            alert("يرجى ملء جميع البيانات واختيار كلمة سر للحذف");
+            alert("يرجى ملء جميع الخانات واختيار كلمة سر");
         }
     }
 
-    // عرض المنتجات للجميع بشكل مباشر
     db.on("value", (snapshot) => {
         const market = document.getElementById('market');
         market.innerHTML = "";
@@ -80,25 +70,22 @@
             const p = child.val();
             market.innerHTML += `
                 <div class="product">
-                    <button class="del-btn" onclick="remove('${child.key}', '${p.password}')" title="حذف الإعلان">×</button>
+                    <button class="del-btn" onclick="remove('${child.key}', '${p.pass}')">×</button>
                     <img src="${p.img}">
-                    <h3 style="margin: 10px 0;">${p.name}</h3>
-                    <p style="font-size: 18px; color: #2e7d32;">الثمن: <b>${p.price} د.ت</b></p>
-                    <a href="https://wa.me/${p.phone}?text=أريد شراء ${p.name}" class="wa-btn">اتصل بالبائع واتساب ✅</a>
+                    <h3>${p.name}</h3>
+                    <p>السعر: ${p.price} د</p>
+                    <a href="https://wa.me/${p.phone}?text=أريد شراء ${p.name}" class="wa-btn">واتساب ✅</a>
                 </div>`;
         });
     });
 
-    // وظيفة الحذف باستخدام كلمة السر الخاصة بالمنتج
-    function remove(id, correctPassword) {
-        const userPass = prompt("أدخل كلمة السر التي اخترتها لهذا المنتج لحذفه:");
-        if (userPass === correctPassword) {
-            if(confirm("هل أنت متأكد من حذف هذا العرض؟")) {
-                db.child(id).remove();
-                alert("تم الحذف بنجاح.");
-            }
+    function remove(id, correctPass) {
+        const userPass = prompt("أدخل كلمة السر التي اخترتها لهذا الإعلان لحذفه:");
+        if (userPass === correctPass) {
+            db.child(id).remove();
+            alert("تم حذف الإعلان.");
         } else if (userPass !== null) {
-            alert("كلمة السر خاطئة! لا يمكنك الحذف.");
+            alert("كلمة سر خاطئة!");
         }
     }
 </script>
